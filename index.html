@@ -3,179 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redeem Tool</title>
+    <title>Cek Lokasi Database</title>
     <style>
-        :root {
-            --primary: #6366f1;
-            --bg-dark: #0f172a;
-            --bg-card: #1e293b;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --success: #10b981;
-            --error: #ef4444;
-            --border: #334155;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-
-        body {
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            padding: 20px;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 400px;
-            background: var(--bg-card);
-            border-radius: 16px;
-            border: 1px solid var(--border);
-            overflow: hidden;
-            margin-top: 20px;
-            position: relative;
-        }
-
-        .status-badge {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            font-size: 0.75rem;
-            padding: 4px 8px;
-            border-radius: 12px;
-            background: #334155;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            z-index: 10;
-        }
-        .dot { width: 8px; height: 8px; border-radius: 50%; background: gray; }
-        .dot.online { background: var(--success); box-shadow: 0 0 5px var(--success); }
-        .dot.offline { background: var(--error); }
-
-        header {
-            background: linear-gradient(135deg, #4f46e5, var(--primary));
-            padding: 25px;
-            text-align: center;
-            border-bottom: 1px solid var(--border);
-        }
-        header h1 { font-size: 1.3rem; margin-bottom: 5px; }
-
-        .content-area { padding: 25px; }
-
-        .form-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; color: var(--text-muted); font-size: 0.9rem; }
-        
-        input {
-            padding: 12px;
-            background: #0f172a;
-            border: 2px solid var(--border);
-            border-radius: 8px;
-            color: white;
-            font-size: 1rem;
-            width: 100%;
-            text-align: center;
-            text-transform: uppercase;
-        }
-        input:focus { outline: none; border-color: var(--primary); }
-
-        .btn {
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            background: var(--primary);
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 10px;
-        }
-        .btn:hover { opacity: 0.9; }
-
-        .logs-section {
-            border-top: 1px solid var(--border);
-            padding-top: 20px;
-        }
-        .logs-header { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 0.9rem; color: var(--text-muted); }
-        
-        .log-list {
-            max-height: 200px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .log-item {
-            background: #0f172a;
-            padding: 10px;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            border-left: 3px solid var(--primary);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .btn-copy { background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 0.7rem;}
-        .btn-copy:hover { background: var(--border); color: white; }
-
-        .toast {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: #333; color: white; padding: 10px 20px; border-radius: 20px;
-            font-size: 0.9rem; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 100;
-        }
-        .toast.show { opacity: 1; }
+        body { background: #111; color: #0f0; font-family: monospace; padding: 20px; }
+        .box { border: 1px solid #333; padding: 20px; margin-bottom: 20px; }
+        button { padding: 10px 20px; background: #333; color: white; border: none; cursor: pointer; }
+        button:hover { background: #555; }
+        #result { white-space: pre-wrap; word-break: break-all; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <div class="status-badge" id="connectionStatus">
-            <div class="dot" id="statusDot"></div>
-            <span id="statusText">Checking...</span>
-        </div>
-
-        <header>
-            <h1>Redeem Tool</h1>
-        </header>
-
-        <div class="content-area">
-            <div class="form-group">
-                <label>Nama Pemenang</label>
-                <input type="text" id="usernameInput" placeholder="Nama Anda..." maxlength="12">
-            </div>
-
-            <div class="form-group">
-                <label>Kode Redeem</label>
-                <input type="text" id="codeInput" placeholder="Contoh: SULTAN" maxlength="20">
-            </div>
-
-            <button class="btn" id="redeemBtn" onclick="processRedeem()">Tukar Hadiah</button>
-
-            <div class="logs-section" style="margin-top:30px;">
-                <div class="logs-header">
-                    <span>Daftar Pemenang</span>
-                    <span id="logCount">0</span>
-                </div>
-                <div class="log-list" id="logList">
-                    <div style="text-align:center; color:#555; font-size:0.8rem;">Menunggu data...</div>
-                </div>
-            </div>
-        </div>
+    <div class="box">
+        <h2>🔍 DEBUG: Cari Kode 'SULTAN'</h2>
+        <p>Klik tombol di bawah untuk mencari keberadaan kode 'SULTAN' di seluruh database Anda.</p>
+        <button onclick="findCode()">Cari Sekarang</button>
     </div>
 
-    <div id="toast" class="toast"></div>
+    <div class="box">
+        <h3>Hasil Pencarian:</h3>
+        <div id="result">Menunggu...</div>
+    </div>
 
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <script>
-        // ==========================================
-        // 1. KONFIGURASI FIREBASE
-        // ==========================================
+        // ISI KONFIGURASI ANDA DI SINI
         const firebaseConfig = {
             apiKey: "AIzaSyBmmOJue97ewmU5XIoObY6Os22lrPKIcL8",
             authDomain: "torataro.firebaseapp.com",
@@ -186,118 +40,55 @@
             appId: "1:357999678278:web:d7a4dcc62519fe45d88b47"
         };
 
-        // Cek Config
-        if (firebaseConfig.apiKey === "ISI_API_KEY_ANDA_DISINI") {
-            alert("ERROR: Konfigurasi Firebase belum diisi!");
-            document.getElementById('statusText').innerText = "Config Err";
-            document.getElementById('statusDot').classList.add('offline');
-        } else {
-            try {
-                firebase.initializeApp(firebaseConfig);
-                const connectedRef = firebase.database().ref(".info/connected");
-                connectedRef.on("value", (snap) => {
-                    if (snap.val() === true) {
-                        document.getElementById('statusText').innerText = "Online";
-                        document.getElementById('statusDot').classList.add('online');
-                    } else {
-                        document.getElementById('statusText').innerText = "Offline";
-                        document.getElementById('statusDot').classList.remove('online');
-                    }
-                });
-            } catch (e) {
-                alert("Koneksi Firebase Gagal: " + e.message);
-                document.getElementById('statusDot').classList.add('offline');
-            }
-        }
-
+        firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        
-        // ==========================================
-        // 2. PATH DATABASE (SESUAIKAN DENGAN ANDA)
-        // ==========================================
-        // Struktur Anda: root -> codes -> GEMS, SULTAN, dll
-        const codesRef = db.ref('codes'); 
-        
-        // Logs tetap di folder 'logs' (opsional, bisa diganti 'logs' saja di root)
-        const logsRef = db.ref('logs');
 
-        // Listener Logs
-        logsRef.limitToLast(50).on('value', (snapshot) => {
-            const list = document.getElementById('logList');
-            const count = document.getElementById('logCount');
-            list.innerHTML = '';
+        async function findCode() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerText = "Sedang memindai database...";
             
-            const data = [];
-            snapshot.forEach(c => data.push(c.val()));
-            data.reverse();
-            count.innerText = data.length;
+            const codeToFind = "SULTAN"; // Kode yang ingin dicari
+            let foundPath = null;
 
-            if(data.length === 0) {
-                list.innerHTML = '<div style="text-align:center; color:#555; font-size:0.8rem;">Belum ada pemenang.</div>';
+            // 1. Cek di Root langsung (misal: root -> SULTAN)
+            try {
+                const snap = await db.ref(codeToFind).once('value');
+                if (snap.exists()) {
+                    foundPath = `ROOT -> ${codeToFind}`;
+                }
+            } catch(e) {}
+
+            // 2. Cek di folder 'codes' (misal: root -> codes -> SULTAN)
+            if (!foundPath) {
+                try {
+                    const snap = await db.ref('codes/' + codeToFind).once('value');
+                    if (snap.exists()) {
+                        foundPath = `ROOT -> codes -> ${codeToFind}`;
+                    }
+                } catch(e) {}
+            }
+
+            // 3. Cek di folder 'redeem_codes' (default script lama)
+            if (!foundPath) {
+                try {
+                    const snap = await db.ref('redeem_codes/' + codeToFind).once('value');
+                    if (snap.exists()) {
+                        foundPath = `ROOT -> redeem_codes -> ${codeToFind}`;
+                    }
+                } catch(e) {}
+            }
+
+            // HASIL
+            if (foundPath) {
+                resultDiv.innerHTML = `<span style="color:#0f0">✅ KETEMU!</span><br>Lokasi: ${foundPath}<br><br>Gunakan path ini di script utama Anda.`;
             } else {
-                data.forEach(item => {
-                    const el = document.createElement('div');
-                    el.className = 'log-item';
-                    el.innerHTML = `<span>${item.name}</span><button class="btn-copy" onclick="navigator.clipboard.writeText('${item.name}')">Copy</button>`;
-                    list.appendChild(el);
+                resultDiv.innerHTML = `<span style="color:red">❌ TIDAK KETEMU</span><br>Pastikan Anda sudah menambahkan kode 'SULTAN' di Firebase Console.`;
+                
+                // Tampilkan isi root untuk bantuan
+                db.ref('/').once('value').then(snap => {
+                    resultDiv.innerHTML += `<br><br>Isi Root Database Anda:<br>${JSON.stringify(snap.val(), null, 2)}`;
                 });
             }
-        });
-
-        // ==========================================
-        // 3. FUNGSI REDEEM
-        // ==========================================
-        function processRedeem() {
-            const name = document.getElementById('usernameInput').value.trim();
-            let rawCode = document.getElementById('codeInput').value;
-            
-            // Bersihkan Input (Hapus spasi, huruf besar)
-            let cleanCode = rawCode.toUpperCase().replace(/\s+/g, '');
-
-            if(!name) return showToast("Isi nama dulu!", "error");
-            if(!cleanCode) return showToast("Kode kosong!", "error");
-
-            // DEBUG: Cetak ke Console Browser
-            console.log("Mencari kode di path: /codes/" + cleanCode);
-
-            // Transaction ke Firebase
-            codesRef.child(cleanCode).transaction((currentData) => {
-                
-                console.log("Data ditemukan di Firebase:", currentData);
-
-                if (!currentData) {
-                    // Jika null, berarti kode tidak ada
-                    showToast("Kode '" + cleanCode + "' TIDAK VALID!", "error");
-                    return; // Batalkan transaksi
-                }
-                if (currentData.status === 'used') {
-                    showToast("Kode sudah dipakai!", "error");
-                    return; // Batalkan transaksi
-                }
-                return { ...currentData, status: 'used' }; // Update status
-            }, (error, committed, snapshot) => {
-                if (error) {
-                    showToast("Error Koneksi", "error");
-                    console.error(error);
-                } else if (committed) {
-                    // Berhasil
-                    const reward = snapshot.val().reward;
-                    alert(`🎉 SELAMAT!\n\nNama: ${name}\nHadiah: ${reward}`);
-                    
-                    logsRef.push({ name: name });
-                    document.getElementById('usernameInput').value = '';
-                    document.getElementById('codeInput').value = '';
-                    showToast("Berhasil!", "success");
-                }
-            });
-        }
-
-        function showToast(msg, type='info') {
-            const t = document.getElementById('toast');
-            t.innerText = msg;
-            t.style.backgroundColor = type === 'error' ? '#ef4444' : (type === 'success' ? '#10b981' : '#333');
-            t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 3000);
         }
     </script>
 </body>
