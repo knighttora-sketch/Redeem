@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redeem Tool Final</title>
+    <title>Redeem Tool Double Check</title>
     <style>
         :root {
             --primary: #6366f1;
@@ -54,7 +54,6 @@
         }
         .dot { width: 8px; height: 8px; border-radius: 50%; background: gray; }
         .dot.online { background: var(--success); box-shadow: 0 0 5px var(--success); }
-        .dot.offline { background: var(--error); }
 
         header {
             background: linear-gradient(135deg, #4f46e5, var(--primary));
@@ -84,12 +83,11 @@
         input.valid { border-color: var(--success); }
         input.invalid { border-color: var(--error); }
 
-        /* Teks kecil untuk validasi live */
         .input-hint {
             font-size: 0.75rem;
             text-align: center;
             margin-top: 5px;
-            height: 15px; /* Cegah layout jump */
+            height: 15px;
         }
         .hint-ok { color: var(--success); }
         .hint-bad { color: var(--error); }
@@ -105,13 +103,9 @@
             width: 100%;
             margin-top: 10px;
         }
-        .btn:hover { opacity: 0.9; }
         .btn:disabled { background: #475569; cursor: not-allowed; }
 
-        .logs-section {
-            border-top: 1px solid var(--border);
-            padding-top: 20px;
-        }
+        .logs-section { border-top: 1px solid var(--border); padding-top: 20px; }
         .logs-header { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 0.9rem; color: var(--text-muted); }
         
         .log-list {
@@ -145,9 +139,9 @@
 <body>
 
     <div class="container">
-        <div class="status-badge" id="connectionStatus">
-            <div class="dot" id="statusDot"></div>
-            <span id="statusText">Checking...</span>
+        <div class="status-badge">
+            <div class="dot online" id="statusDot"></div>
+            <span id="statusText">Online</span>
         </div>
 
         <header>
@@ -162,7 +156,6 @@
 
             <div class="form-group">
                 <label>Kode Redeem</label>
-                <!-- onkeyup akan mengecek kode saat diketik -->
                 <input type="text" id="codeInput" placeholder="Ketik Kode..." maxlength="20" onkeyup="checkCodeLive()">
                 <div id="codeHint" class="input-hint"></div>
             </div>
@@ -188,9 +181,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <script>
-        // ==========================================
-        // 1. KONFIGURASI FIREBASE
-        // ==========================================
         const firebaseConfig = {
             apiKey: "AIzaSyBmmOJue97ewmU5XIoObY6Os22lrPKIcL8",
             authDomain: "torataro.firebaseapp.com",
@@ -201,30 +191,10 @@
             appId: "1:357999678278:web:d7a4dcc62519fe45d88b47"
         };
 
-        if (firebaseConfig.apiKey === "ISI_API_KEY_ANDA_DISINI") {
-            alert("ERROR: Konfigurasi Firebase belum diisi!");
-            document.getElementById('statusDot').classList.add('offline');
-        } else {
-            try {
-                firebase.initializeApp(firebaseConfig);
-                const connectedRef = firebase.database().ref(".info/connected");
-                connectedRef.on("value", (snap) => {
-                    if (snap.val() === true) {
-                        document.getElementById('statusText').innerText = "Online";
-                        document.getElementById('statusDot').classList.add('online');
-                    } else {
-                        document.getElementById('statusText').innerText = "Offline";
-                        document.getElementById('statusDot').classList.remove('online');
-                    }
-                });
-            } catch (e) {
-                alert("Koneksi Firebase Gagal: " + e.message);
-                document.getElementById('statusDot').classList.add('offline');
-            }
-        }
+        if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
         const db = firebase.database();
-        const codesRef = db.ref('codes'); // Path sesuai hasil pencarian Anda
+        const codesRef = db.ref('codes'); 
         const logsRef = db.ref('logs');
 
         // Listener Logs
@@ -250,83 +220,93 @@
             }
         });
 
-        // ==========================================
-        // 2. LIVE CHECKER (Fitur Baru)
-        // ==========================================
+        // Live Checker
         function checkCodeLive() {
             const input = document.getElementById('codeInput');
             const hint = document.getElementById('codeHint');
-            let rawCode = input.value;
-            let cleanCode = rawCode.toUpperCase().replace(/\s+/g, '');
+            let cleanCode = input.value.toUpperCase().replace(/\s+/g, '');
 
-            // Reset styling
             input.classList.remove('valid', 'invalid');
             hint.className = 'input-hint';
+            hint.innerText = "";
 
-            if (cleanCode.length === 0) {
-                hint.innerText = "";
-                return;
-            }
-
-            // Cek apakah kode ada (Tanpa mengubah status)
-            codesRef.child(cleanCode).once('value').then(snapshot => {
-                if (snapshot.exists()) {
-                    const data = snapshot.val();
-                    if(data.status === 'used') {
-                        input.classList.add('invalid');
-                        hint.innerText = "⚠️ Kode ini sudah dipakai!";
-                        hint.classList.add('hint-bad');
+            if (cleanCode.length > 0) {
+                codesRef.child(cleanCode).once('value').then(snapshot => {
+                    if (snapshot.exists()) {
+                        const data = snapshot.val();
+                        if(data.status === 'used') {
+                            input.classList.add('invalid');
+                            hint.innerText = "⚠️ Kode sudah dipakai";
+                            hint.classList.add('hint-bad');
+                        } else {
+                            input.classList.add('valid');
+                            hint.innerText = "✅ Valid: " + data.reward;
+                            hint.classList.add('hint-ok');
+                        }
                     } else {
-                        input.classList.add('valid');
-                        hint.innerText = "✅ Kode Valid: " + data.reward;
-                        hint.classList.add('hint-ok');
+                        input.classList.add('invalid');
+                        hint.innerText = "❌ Tidak ditemukan";
+                        hint.classList.add('hint-bad');
                     }
-                } else {
-                    input.classList.add('invalid');
-                    hint.innerText = "❌ Kode tidak ditemukan";
-                    hint.classList.add('hint-bad');
-                }
-            });
+                });
+            }
         }
 
         // ==========================================
-        // 3. PROSES REDEEM
+        // LOGIKA DOUBLE CHECK (BARU)
         // ==========================================
-        function processRedeem() {
+        async function processRedeem() {
             const name = document.getElementById('usernameInput').value.trim();
-            let rawCode = document.getElementById('codeInput').value;
-            let cleanCode = rawCode.toUpperCase().replace(/\s+/g, '');
+            const rawCode = document.getElementById('codeInput').value;
+            const cleanCode = rawCode.toUpperCase().replace(/\s+/g, '');
 
-            if(!name) return showToast("Isi nama dulu!", "error");
+            if(!name) return showToast("Isi nama!", "error");
             if(!cleanCode) return showToast("Isi kode!", "error");
 
-            // Transaction (One-time use logic)
-            codesRef.child(cleanCode).transaction((currentData) => {
-                if (!currentData) {
+            const btn = document.getElementById('redeemBtn');
+            btn.disabled = true;
+            btn.innerText = "Memproses...";
+
+            try {
+                // 1. AMBIL DATA CURRENT DULU (FINAL CHECK)
+                const snapshot = await codesRef.child(cleanCode).once('value');
+                
+                if (!snapshot.exists()) {
+                    throw new Error("KODE_TIDAK_VALID");
+                }
+
+                const data = snapshot.val();
+
+                if (data.status === 'used') {
+                    throw new Error("KODE_SUDAH_DIPAKAI");
+                }
+
+                // 2. JIKA LULUS CHECK, LAKUKAN UPDATE STATUS
+                await codesRef.child(cleanCode).update({ status: 'used' });
+
+                // 3. SUKSES
+                alert(`🎉 SELAMAT!\n\nNama: ${name}\nHadiah: ${data.reward}`);
+                logsRef.push({ name: name });
+                
+                document.getElementById('usernameInput').value = '';
+                document.getElementById('codeInput').value = '';
+                document.getElementById('codeHint').innerText = '';
+                document.getElementById('codeInput').classList.remove('valid');
+                showToast("Berhasil!", "success");
+
+            } catch (error) {
+                console.error(error);
+                if (error.message === "KODE_TIDAK_VALID") {
                     showToast("Kode Tidak Valid!", "error");
-                    return;
-                }
-                if (currentData.status === 'used') {
+                } else if (error.message === "KODE_SUDAH_DIPAKAI") {
                     showToast("Kode sudah dipakai!", "error");
-                    return;
+                } else {
+                    showToast("Terjadi kesalahan koneksi.", "error");
                 }
-                return { ...currentData, status: 'used' };
-            }, (error, committed, snapshot) => {
-                if (error) {
-                    showToast("Error Koneksi", "error");
-                    console.error(error);
-                } else if (committed) {
-                    const reward = snapshot.val().reward;
-                    alert(`🎉 SELAMAT!\n\nNama: ${name}\nHadiah: ${reward}`);
-                    
-                    logsRef.push({ name: name });
-                    document.getElementById('usernameInput').value = '';
-                    document.getElementById('codeInput').value = '';
-                    document.getElementById('codeHint').innerText = '';
-                    document.getElementById('codeInput').classList.remove('valid', 'invalid');
-                    showToast("Berhasil!", "success");
-                }
-            });
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Tukar Hadiah";
+            }
         }
 
         function showToast(msg, type='info') {
