@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redeem & Winner Logs</title>
+    <title>Redeem Global Realtime</title>
     <style>
         :root {
             --primary: #6366f1;
@@ -52,7 +52,6 @@
 
         .content-area { padding: 25px; }
 
-        /* Form Style */
         .form-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; color: var(--text-muted); font-size: 0.9rem; }
         
@@ -145,7 +144,8 @@
 
         .empty-state { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 10px; }
 
-        /* Toast Notification (Kecil) */
+        /* Loading & Toast */
+        #loader { display: none; text-align: center; margin: 10px; color: var(--text-muted); font-size: 0.9rem;}
         .toast {
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
             background: #333; color: white; padding: 10px 20px; border-radius: 30px;
@@ -158,14 +158,15 @@
 
     <div class="container">
         <header>
-            <h1>Redeem System</h1>
-            <p>Satu Kode = Satu Pemenang</p>
+            <h1>Global Redeem</h1>
+            <p>Live Database via Firebase</p>
         </header>
 
         <div class="content-area">
+            <div id="loader">Menghubungkan ke Database...</div>
+
             <div class="form-group">
                 <label>Masukkan Identitas</label>
-                <!-- Input Nama -->
                 <div class="input-row">
                     <input type="text" id="usernameInput" placeholder="Nama Kamu..." maxlength="12">
                 </div>
@@ -173,7 +174,6 @@
 
             <div class="form-group">
                 <label>Masukkan Kode</label>
-                <!-- Input Kode -->
                 <div class="input-row">
                     <input type="text" id="codeInput" placeholder="XXXX-XXXX" maxlength="15">
                 </div>
@@ -183,64 +183,81 @@
             <!-- Section Logs Pemenang -->
             <div class="logs-section">
                 <div class="logs-header">
-                    <h3>Daftar Pemenang</h3>
+                    <h3>Daftar Pemenang (Live)</h3>
                     <span class="badge" id="logCount">0</span>
                 </div>
                 
                 <div class="log-list" id="logListContainer">
-                    <div class="empty-state">Belum ada pemenang.</div>
+                    <div class="empty-state">Menunggu koneksi database...</div>
                 </div>
             </div>
 
         </div>
     </div>
 
-    <!-- Toast Kecil -->
     <div id="toast" class="toast">Notifikasi</div>
 
+    <!-- FIREBASE SDK (Versi 8 - Kompatibel) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
     <script>
-        // --- KONFIGURASI ---
-        const DB_KEY = 'GLOBAL_REDEEM_DB_V5';
-        const LOGS_KEY = 'GLOBAL_REDEEM_LOGS_V5';
+        // --- 1. KONFIGURASI FIREBASE ---
+        // GANTI BAGIAN INI DENGAN DATA DARI CONSOLE FIREBASE ANDA
+        const firebaseConfig = {
+            // --- PASTE KONFIGURASI FIREBASE DISINI ---
+            apiKey: "AIzaSyBmmOJue97ewmU5XIoObY6Os22lrPKIcL8",
+            authDomain: "torataro.firebaseapp.com",
+            databaseURL: "https://torataro-default-rtdb.asia-southeast1.firebasedatabase.app/",
+            projectId: "torataro",
+            storageBucket: "torataro.firebasestorage.app",
+            messagingSenderId: "357999678278",
+            appId: "1:357999678278:web:d7a4dcc62519fe45d88b47"
+            // ---------------------------------------
+        };
 
-        // Database Kode (Edit di sini)
-        const initialCodes = [
-            { code: "UNTUKGA", name: "💎 5000 Diamond" },
-            { code: "VIP777", name: "👑 Skin King" },
-            { code: "GEMS", name: "💎 1000 Gems" },
-            { code: "TEST", name: "🎁 Mystery Box" }
-        ];
-
-        // --- FUNGSI DATABASE ---
-        function getDB() {
-            const data = localStorage.getItem(DB_KEY);
-            return data ? JSON.parse(data) : initialCodes; // Gunakan initial jika kosong
+        // Inisialisasi Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
         }
+        const db = firebase.database();
 
-        function saveDB(data) {
-            localStorage.setItem(DB_KEY, JSON.stringify(data));
-        }
+        // Referensi Database
+        const codesRef = db.ref('codes');
+        const logsRef = db.ref('logs');
 
-        // --- FUNGSI LOGS ---
-        function getLogs() {
-            const logs = localStorage.getItem(LOGS_KEY);
-            return logs ? JSON.parse(logs) : [];
-        }
+        // --- 2. INISIALISASI DATA KODE (Hanya dijalankan sekali oleh Admin/Pertama kali) ---
+        // Kita cek apakah data 'codes' sudah ada, jika belum, isi dengan data default
+        codesRef.once('value', (snapshot) => {
+            document.getElementById('loader').style.display = 'none';
+            if (!snapshot.exists()) {
+                // Data default kode
+                const defaultCodes = {
+                    "SULTAN": { name: "💎 5000 Diamond", status: "active" },
+                    "VIP777": { name: "👑 Skin King", status: "active" },
+                    "GEMS": { name: "💎 1000 Gems", status: "active" },
+                    "TEST": { name: "🎁 Mystery Box", status: "active" }
+                };
+                codesRef.set(defaultCodes).then(() => {
+                    console.log("Database kode berhasil dibuat.");
+                });
+            }
+        });
 
-        function addLog(name) {
-            const logs = getLogs();
-            logs.unshift({ name: name, date: new Date().toLocaleTimeString() });
-            localStorage.setItem(LOGS_KEY, JSON.stringify(logs));
-            renderLogs();
-        }
-
-        // --- TAMPILKAN LOGS (Hanya Nama) ---
-        function renderLogs() {
+        // --- 3. FUNGSI LISTEN LOGS (Realtime) ---
+        // Fungsi ini otomatis update tampilan jika ada pemenang baru di HP lain
+        logsRef.limitToLast(50).on('value', (snapshot) => {
             const container = document.getElementById('logListContainer');
-            const logs = getLogs();
             const badge = document.getElementById('logCount');
-            
-            container.innerHTML = '';
+            container.innerHTML = ''; // Bersihkan list
+
+            const logs = [];
+            snapshot.forEach((childSnapshot) => {
+                logs.push(childSnapshot.val());
+            });
+            // Balik urutan agar yang terbaru di atas
+            logs.reverse();
+
             badge.textContent = logs.length;
 
             if (logs.length === 0) {
@@ -251,29 +268,15 @@
             logs.forEach(log => {
                 const div = document.createElement('div');
                 div.className = 'log-item';
-                // Hanya menampilkan Nama
                 div.innerHTML = `
                     <span>👤 ${log.name}</span>
                     <button class="btn-copy" onclick="copyName('${log.name}')">Copy</button>
                 `;
                 container.appendChild(div);
             });
-        }
+        });
 
-        function copyName(name) {
-            navigator.clipboard.writeText(name).then(() => {
-                showToast(`Nama "${name}" disalin!`);
-            });
-        }
-
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            toast.textContent = msg;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 2000);
-        }
-
-        // --- LOGIKA UTAMA ---
+        // --- 4. LOGIKA UTAMA ---
         function processRedeem() {
             const nameIn = document.getElementById('usernameInput');
             const codeIn = document.getElementById('codeInput');
@@ -281,46 +284,64 @@
             const name = nameIn.value.trim();
             const code = codeIn.value.trim().toUpperCase();
 
-            // 1. Validasi
             if (!name) return showToast("Isi nama kamu dulu!");
             if (!code) return showToast("Isi kode redeem!");
 
-            let db = getDB();
-            // Cari kode
-            const index = db.findIndex(item => item.code === code);
+            // Ambil data kode dari Firebase secara realtime (Transaction)
+            // Transaction dipakai agar mencegah 2 orang redeem kode yang sama persis di waktu yang sama
+            codesRef.child(code).transaction((currentData) => {
+                if (currentData === null) {
+                    // Kode tidak ditemukan
+                    showToast("Kode tidak valid!", "error");
+                    return; // Batalkan transaksi
+                }
+                if (currentData.status === 'used') {
+                    // Kode sudah dipakai
+                    showToast("Kode sudah dipakai orang lain!", "error");
+                    return; // Batalkan transaksi
+                }
+                
+                // Jika kode valid dan aktif, ubah status jadi 'used'
+                return { ...currentData, status: 'used' };
+            }, (error, committed, snapshot) => {
+                if (error) {
+                    console.error(error);
+                    showToast("Terjadi kesalahan koneksi.", "error");
+                } else if (committed) {
+                    // Jika committed = true, berarti status berhasil diubah ke 'used'
+                    const rewardData = snapshot.val();
+                    
+                    // 1. Tampilkan Alert di HP user ini
+                    alert(`🎉 SELAMAT!\n\nNama: ${name}\nHadiah: ${rewardData.name}\n\nKode berhasil ditukar.`);
 
-            if (index === -1) {
-                showToast("Kode salah atau sudah dipakai!");
-                return;
-            }
+                    // 2. Simpan Log Pemenang ke Firebase (Agar muncul di HP lain)
+                    logsRef.push({
+                        name: name,
+                        date: new Date().toISOString()
+                    });
 
-            // 2. Redeem Sukses
-            const reward = db[index].name;
-            
-            // Tampilkan POP UP (Alert)
-            alert(`🎉 SELAMAT!\n\nNama: ${name}\nHadiah: ${reward}\n\nKode berhasil ditukar.`);
-
-            // 3. Simpan Logs (Hanya Nama)
-            addLog(name);
-
-            // 4. Hapus Kode dari Database
-            db.splice(index, 1);
-            saveDB(db);
-
-            // 5. Bersihkan Input
-            nameIn.value = '';
-            codeIn.value = '';
-            showToast("Berhasil! Cek daftar pemenang.");
+                    // 3. Bersihkan Input
+                    nameIn.value = '';
+                    codeIn.value = '';
+                    showToast("Berhasil! Cek daftar pemenang.");
+                }
+            });
         }
 
-        // Jalankan saat load
-        renderLogs();
-        
-        // Inisialisasi DB jika belum ada
-        if(!localStorage.getItem(DB_KEY)) {
-            saveDB(initialCodes);
+        // --- HELPER FUNCTIONS ---
+        function showToast(msg, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.style.backgroundColor = type === 'error' ? '#ef4444' : '#333';
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
+        function copyName(name) {
+            navigator.clipboard.writeText(name).then(() => {
+                showToast(`Nama "${name}" disalin!`);
+            });
+        }
     </script>
 </body>
 </html>
