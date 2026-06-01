@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redeem Tool Final</title>
+    <title>Redeem Tool Full History</title>
     <style>
         :root {
             --primary: #6366f1;
@@ -30,7 +30,7 @@
 
         .container {
             width: 100%;
-            max-width: 420px; /* Sedikit diperlebar */
+            max-width: 420px;
             background: var(--bg-card);
             border-radius: 16px;
             border: 1px solid var(--border);
@@ -80,7 +80,6 @@
             text-transform: uppercase;
         }
         input:focus { outline: none; border-color: var(--primary); }
-        /* Validasi hanya dengan warna border, tanpa teks hint */
         input.valid { border-color: var(--success); box-shadow: 0 0 5px rgba(16, 185, 129, 0.2); }
         input.invalid { border-color: var(--error); box-shadow: 0 0 5px rgba(239, 68, 68, 0.2); }
 
@@ -111,7 +110,7 @@
         }
         
         .log-list {
-            max-height: 300px; /* Diperbesar tingginya */
+            max-height: 350px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
@@ -119,7 +118,6 @@
             padding-right: 5px;
         }
         
-        /* Scrollbar halus */
         .log-list::-webkit-scrollbar { width: 6px; }
         .log-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
@@ -130,7 +128,7 @@
             font-size: 0.85rem;
             border-left: 3px solid var(--primary);
             display: flex;
-            flex-direction: column; /* Susun vertikal */
+            flex-direction: column;
             gap: 4px;
         }
 
@@ -186,11 +184,11 @@
 
             <div class="logs-section" style="margin-top:30px;">
                 <div class="logs-header">
-                    <span>Riwayat Pemenang (200 Terakhir)</span>
+                    <span>Semua Riwayat Pemenang</span>
                     <span id="logCount">0</span>
                 </div>
                 <div class="log-list" id="logList">
-                    <div style="text-align:center; color:#555; font-size:0.8rem; padding: 20px;">Menunggu data...</div>
+                    <div style="text-align:center; color:#555; font-size:0.8rem; padding: 20px;">Memuat data...</div>
                 </div>
             </div>
         </div>
@@ -219,59 +217,71 @@
         const codesRef = db.ref('codes'); 
         const logsRef = db.ref('logs');
 
-        // Listener Logs (Diperbarui untuk menampilkan Tanggal)
-        logsRef.limitToLast(200).on('value', (snapshot) => {
+        // ==========================================
+        // FUNGSI RENDER LOGS (FIXED UNTUK BACA SEMUA)
+        // ==========================================
+        logsRef.on('value', (snapshot) => {
             const list = document.getElementById('logList');
             const count = document.getElementById('logCount');
             list.innerHTML = '';
             
+            if (!snapshot.exists()) {
+                list.innerHTML = '<div style="text-align:center; color:#555; font-size:0.8rem; padding: 20px;">Belum ada pemenang.</div>';
+                count.innerText = "0";
+                return;
+            }
+
             const data = [];
-            snapshot.forEach(c => data.push(c.val()));
-            data.reverse(); // Pemenang terbaru di atas
+            
+            // Loop semua data yang ada (tanpa limit)
+            snapshot.forEach(c => {
+                const val = c.val();
+                // Fix logic: Pastikan setiap data punya timestamp yang valid
+                // Jika data lama formatnya beda, kita beri timestamp sekarang
+                if (!val.timestamp) {
+                    val.timestamp = Date.now(); 
+                }
+                data.push(val);
+            });
+
+            // Urutkan berdasarkan waktu (Terbaru di atas)
+            data.sort((a, b) => b.timestamp - a.timestamp);
+
             count.innerText = data.length;
 
-            if(data.length === 0) {
-                list.innerHTML = '<div style="text-align:center; color:#555; font-size:0.8rem; padding: 20px;">Belum ada pemenang.</div>';
-            } else {
-                data.forEach(item => {
-                    const el = document.createElement('div');
-                    el.className = 'log-item';
-                    
-                    // Format Tanggal Indonesia
-                    const dateObj = new Date(item.timestamp);
-                    const dateStr = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-                    const timeStr = dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            data.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'log-item';
+                
+                const dateObj = new Date(item.timestamp);
+                // Format Tanggal Indonesia
+                const dateStr = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit' });
 
-                    el.innerHTML = `
-                        <div class="log-top">
-                            <span class="log-name">👤 ${item.name}</span>
-                            <span class="log-date">${dateStr}, ${timeStr}</span>
-                        </div>
-                        <button class="btn-copy" onclick="copyText('${item.name}')">Copy Nama</button>
-                    `;
-                    list.appendChild(el);
-                });
-            }
+                el.innerHTML = `
+                    <div class="log-top">
+                        <span class="log-name">👤 ${item.name}</span>
+                        <span class="log-date">${dateStr}</span>
+                    </div>
+                    <button class="btn-copy" onclick="copyText('${item.name}')">Copy Nama</button>
+                `;
+                list.appendChild(el);
+            });
         });
 
-        // Live Checker (Hanya ganti warna border, tanpa teks)
+        // Live Checker
         function checkCodeLive() {
             const input = document.getElementById('codeInput');
             let cleanCode = input.value.toUpperCase().replace(/\s+/g, '');
-
             input.classList.remove('valid', 'invalid');
 
             if (cleanCode.length > 0) {
                 codesRef.child(cleanCode).once('value').then(snapshot => {
                     if (snapshot.exists()) {
                         const data = snapshot.val();
-                        if(data.status !== 'used') {
-                            input.classList.add('valid'); // Hijau
-                        } else {
-                            input.classList.add('invalid'); // Merah
-                        }
+                        if(data.status !== 'used') input.classList.add('valid');
+                        else input.classList.add('invalid');
                     } else {
-                        input.classList.add('invalid'); // Merah
+                        input.classList.add('invalid');
                     }
                 });
             }
@@ -291,44 +301,31 @@
 
             try {
                 const snapshot = await codesRef.child(cleanCode).once('value');
-                
-                if (!snapshot.exists()) {
-                    throw new Error("KODE_TIDAK_VALID");
-                }
+                if (!snapshot.exists()) throw new Error("KODE_TIDAK_VALID");
 
                 const data = snapshot.val();
-
-                if (data.status === 'used') {
-                    throw new Error("KODE_SUDAH_DIPAKAI");
-                }
+                if (data.status === 'used') throw new Error("KODE_SUDAH_DIPAKAI");
 
                 // Update Status
                 await codesRef.child(cleanCode).update({ status: 'used' });
 
-                // SUKSES
-                alert(`🎉 SELAMAT!\n\nNama: ${name}\nHadiah: ${data.reward}`);
-                
-                // Simpan Log dengan Timestamp (Waktu Server)
+                // SIMPAN LOG (PENTING: Selalu pakai timestamp server)
                 logsRef.push({ 
                     name: name, 
                     timestamp: firebase.database.ServerValue.TIMESTAMP 
                 });
+
+                alert(`🎉 SELAMAT!\n\nNama: ${name}\nHadiah: ${data.reward}`);
                 
-                // Reset Form
                 document.getElementById('usernameInput').value = '';
                 document.getElementById('codeInput').value = '';
                 document.getElementById('codeInput').classList.remove('valid');
                 showToast("Berhasil!", "success");
 
             } catch (error) {
-                console.error(error);
-                if (error.message === "KODE_TIDAK_VALID") {
-                    showToast("Kode Tidak Valid!", "error");
-                } else if (error.message === "KODE_SUDAH_DIPAKAI") {
-                    showToast("Kode sudah dipakai!", "error");
-                } else {
-                    showToast("Terjadi kesalahan koneksi.", "error");
-                }
+                if (error.message === "KODE_TIDAK_VALID") showToast("Kode Tidak Valid!", "error");
+                else if (error.message === "KODE_SUDAH_DIPAKAI") showToast("Kode sudah dipakai!", "error");
+                else showToast("Terjadi kesalahan koneksi.", "error");
             } finally {
                 btn.disabled = false;
                 btn.innerText = "Tukar Hadiah";
