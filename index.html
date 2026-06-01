@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redeem & Winner Logs</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --error: #ef4444;
+            --border: #334155;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            background: var(--bg-card);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            padding: 25px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        header h1 { font-size: 1.4rem; margin-bottom: 5px; }
+        header p { font-size: 0.85rem; opacity: 0.9; }
+
+        .content-area { padding: 25px; }
+
+        /* Form Style */
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; color: var(--text-muted); font-size: 0.9rem; }
+        
+        .input-row { display: flex; gap: 10px; margin-bottom: 10px; }
+
+        input {
+            padding: 12px;
+            background: #0f172a;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+        }
+
+        input[type="text"] { 
+            width: 100%; 
+            text-align: center; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+        }
+        input[type="text"]:focus { outline: none; border-color: var(--primary); }
+
+        .btn {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: var(--primary);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            width: 100%;
+        }
+        .btn:hover { background: var(--primary-dark); }
+
+        /* Logs Style */
+        .logs-section {
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
+        }
+
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .logs-header h3 { font-size: 1rem; color: var(--text-muted); }
+        .badge { background: var(--border); padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; }
+
+        .log-list {
+            max-height: 250px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-right: 5px;
+        }
+
+        .log-list::-webkit-scrollbar { width: 6px; }
+        .log-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        .log-item {
+            background: #0f172a;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border-left: 3px solid var(--primary);
+            font-weight: bold;
+            font-size: 0.95rem;
+            color: var(--text-main);
+            animation: slideIn 0.3s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+
+        .btn-copy {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            cursor: pointer;
+        }
+        .btn-copy:hover { background: var(--border); color: white; }
+
+        .empty-state { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 10px; }
+
+        /* Toast Notification (Kecil) */
+        .toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: #333; color: white; padding: 10px 20px; border-radius: 30px;
+            font-size: 0.9rem; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        .toast.show { opacity: 1; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Redeem System</h1>
+            <p>Satu Kode = Satu Pemenang</p>
+        </header>
+
+        <div class="content-area">
+            <div class="form-group">
+                <label>Masukkan Identitas</label>
+                <!-- Input Nama -->
+                <div class="input-row">
+                    <input type="text" id="usernameInput" placeholder="Nama Kamu..." maxlength="12">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Masukkan Kode</label>
+                <!-- Input Kode -->
+                <div class="input-row">
+                    <input type="text" id="codeInput" placeholder="XXXX-XXXX" maxlength="15">
+                </div>
+                <button class="btn" onclick="processRedeem()">Tukar Hadiah</button>
+            </div>
+
+            <!-- Section Logs Pemenang -->
+            <div class="logs-section">
+                <div class="logs-header">
+                    <h3>Daftar Pemenang</h3>
+                    <span class="badge" id="logCount">0</span>
+                </div>
+                
+                <div class="log-list" id="logListContainer">
+                    <div class="empty-state">Belum ada pemenang.</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Toast Kecil -->
+    <div id="toast" class="toast">Notifikasi</div>
+
+    <script>
+        // --- KONFIGURASI ---
+        const DB_KEY = 'GLOBAL_REDEEM_DB_V5';
+        const LOGS_KEY = 'GLOBAL_REDEEM_LOGS_V5';
+
+        // Database Kode (Edit di sini)
+        const initialCodes = [
+            { code: "UNTUKGA", name: "💎 5000 Diamond" },
+            { code: "VIP777", name: "👑 Skin King" },
+            { code: "GEMS", name: "💎 1000 Gems" },
+            { code: "TEST", name: "🎁 Mystery Box" }
+        ];
+
+        // --- FUNGSI DATABASE ---
+        function getDB() {
+            const data = localStorage.getItem(DB_KEY);
+            return data ? JSON.parse(data) : initialCodes; // Gunakan initial jika kosong
+        }
+
+        function saveDB(data) {
+            localStorage.setItem(DB_KEY, JSON.stringify(data));
+        }
+
+        // --- FUNGSI LOGS ---
+        function getLogs() {
+            const logs = localStorage.getItem(LOGS_KEY);
+            return logs ? JSON.parse(logs) : [];
+        }
+
+        function addLog(name) {
+            const logs = getLogs();
+            logs.unshift({ name: name, date: new Date().toLocaleTimeString() });
+            localStorage.setItem(LOGS_KEY, JSON.stringify(logs));
+            renderLogs();
+        }
+
+        // --- TAMPILKAN LOGS (Hanya Nama) ---
+        function renderLogs() {
+            const container = document.getElementById('logListContainer');
+            const logs = getLogs();
+            const badge = document.getElementById('logCount');
+            
+            container.innerHTML = '';
+            badge.textContent = logs.length;
+
+            if (logs.length === 0) {
+                container.innerHTML = '<div class="empty-state">Belum ada pemenang.</div>';
+                return;
+            }
+
+            logs.forEach(log => {
+                const div = document.createElement('div');
+                div.className = 'log-item';
+                // Hanya menampilkan Nama
+                div.innerHTML = `
+                    <span>👤 ${log.name}</span>
+                    <button class="btn-copy" onclick="copyName('${log.name}')">Copy</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function copyName(name) {
+            navigator.clipboard.writeText(name).then(() => {
+                showToast(`Nama "${name}" disalin!`);
+            });
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        // --- LOGIKA UTAMA ---
+        function processRedeem() {
+            const nameIn = document.getElementById('usernameInput');
+            const codeIn = document.getElementById('codeInput');
+            
+            const name = nameIn.value.trim();
+            const code = codeIn.value.trim().toUpperCase();
+
+            // 1. Validasi
+            if (!name) return showToast("Isi nama kamu dulu!");
+            if (!code) return showToast("Isi kode redeem!");
+
+            let db = getDB();
+            // Cari kode
+            const index = db.findIndex(item => item.code === code);
+
+            if (index === -1) {
+                showToast("Kode salah atau sudah dipakai!");
+                return;
+            }
+
+            // 2. Redeem Sukses
+            const reward = db[index].name;
+            
+            // Tampilkan POP UP (Alert)
+            alert(`🎉 SELAMAT!\n\nNama: ${name}\nHadiah: ${reward}\n\nKode berhasil ditukar.`);
+
+            // 3. Simpan Logs (Hanya Nama)
+            addLog(name);
+
+            // 4. Hapus Kode dari Database
+            db.splice(index, 1);
+            saveDB(db);
+
+            // 5. Bersihkan Input
+            nameIn.value = '';
+            codeIn.value = '';
+            showToast("Berhasil! Cek daftar pemenang.");
+        }
+
+        // Jalankan saat load
+        renderLogs();
+        
+        // Inisialisasi DB jika belum ada
+        if(!localStorage.getItem(DB_KEY)) {
+            saveDB(initialCodes);
+        }
+
+    </script>
+</body>
+</html>
