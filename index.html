@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redeem Tool Double Check</title>
+    <title>Redeem Tool Final</title>
     <style>
         :root {
             --primary: #6366f1;
@@ -30,7 +30,7 @@
 
         .container {
             width: 100%;
-            max-width: 400px;
+            max-width: 420px; /* Sedikit diperlebar */
             background: var(--bg-card);
             border-radius: 16px;
             border: 1px solid var(--border);
@@ -80,17 +80,9 @@
             text-transform: uppercase;
         }
         input:focus { outline: none; border-color: var(--primary); }
-        input.valid { border-color: var(--success); }
-        input.invalid { border-color: var(--error); }
-
-        .input-hint {
-            font-size: 0.75rem;
-            text-align: center;
-            margin-top: 5px;
-            height: 15px;
-        }
-        .hint-ok { color: var(--success); }
-        .hint-bad { color: var(--error); }
+        /* Validasi hanya dengan warna border, tanpa teks hint */
+        input.valid { border-color: var(--success); box-shadow: 0 0 5px rgba(16, 185, 129, 0.2); }
+        input.invalid { border-color: var(--error); box-shadow: 0 0 5px rgba(239, 68, 68, 0.2); }
 
         .btn {
             padding: 12px;
@@ -105,27 +97,58 @@
         }
         .btn:disabled { background: #475569; cursor: not-allowed; }
 
-        .logs-section { border-top: 1px solid var(--border); padding-top: 20px; }
-        .logs-header { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 0.9rem; color: var(--text-muted); }
+        .logs-section {
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
+        }
+        .logs-header { 
+            display: flex; 
+            justify-content: space-between; 
+            margin-bottom: 15px; 
+            font-size: 0.9rem; 
+            color: var(--text-muted); 
+            align-items: center;
+        }
         
         .log-list {
-            max-height: 200px;
+            max-height: 300px; /* Diperbesar tingginya */
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px;
+            padding-right: 5px;
         }
+        
+        /* Scrollbar halus */
+        .log-list::-webkit-scrollbar { width: 6px; }
+        .log-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
         .log-item {
             background: #0f172a;
-            padding: 10px;
-            border-radius: 6px;
-            font-size: 0.9rem;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
             border-left: 3px solid var(--primary);
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column; /* Susun vertikal */
+            gap: 4px;
         }
-        .btn-copy { background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 0.7rem;}
+
+        .log-top { display: flex; justify-content: space-between; align-items: center; }
+        .log-name { font-weight: bold; color: var(--text-main); font-size: 0.95rem; }
+        .log-date { font-size: 0.7rem; color: var(--text-muted); }
+
+        .btn-copy { 
+            background: transparent; 
+            border: 1px solid var(--border); 
+            color: var(--text-muted); 
+            padding: 4px 8px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-size: 0.7rem;
+            margin-top: 5px;
+            align-self: flex-start;
+        }
         .btn-copy:hover { background: var(--border); color: white; }
 
         .toast {
@@ -157,18 +180,17 @@
             <div class="form-group">
                 <label>Kode Redeem</label>
                 <input type="text" id="codeInput" placeholder="Ketik Kode..." maxlength="20" onkeyup="checkCodeLive()">
-                <div id="codeHint" class="input-hint"></div>
             </div>
 
             <button class="btn" id="redeemBtn" onclick="processRedeem()">Tukar Hadiah</button>
 
             <div class="logs-section" style="margin-top:30px;">
                 <div class="logs-header">
-                    <span>Daftar Pemenang</span>
+                    <span>Riwayat Pemenang (200 Terakhir)</span>
                     <span id="logCount">0</span>
                 </div>
                 <div class="log-list" id="logList">
-                    <div style="text-align:center; color:#555; font-size:0.8rem;">Menunggu data...</div>
+                    <div style="text-align:center; color:#555; font-size:0.8rem; padding: 20px;">Menunggu data...</div>
                 </div>
             </div>
         </div>
@@ -197,64 +219,64 @@
         const codesRef = db.ref('codes'); 
         const logsRef = db.ref('logs');
 
-        // Listener Logs
-        logsRef.limitToLast(50).on('value', (snapshot) => {
+        // Listener Logs (Diperbarui untuk menampilkan Tanggal)
+        logsRef.limitToLast(200).on('value', (snapshot) => {
             const list = document.getElementById('logList');
             const count = document.getElementById('logCount');
             list.innerHTML = '';
             
             const data = [];
             snapshot.forEach(c => data.push(c.val()));
-            data.reverse();
+            data.reverse(); // Pemenang terbaru di atas
             count.innerText = data.length;
 
             if(data.length === 0) {
-                list.innerHTML = '<div style="text-align:center; color:#555; font-size:0.8rem;">Belum ada pemenang.</div>';
+                list.innerHTML = '<div style="text-align:center; color:#555; font-size:0.8rem; padding: 20px;">Belum ada pemenang.</div>';
             } else {
                 data.forEach(item => {
                     const el = document.createElement('div');
                     el.className = 'log-item';
-                    el.innerHTML = `<span>${item.name}</span><button class="btn-copy" onclick="navigator.clipboard.writeText('${item.name}')">Copy</button>`;
+                    
+                    // Format Tanggal Indonesia
+                    const dateObj = new Date(item.timestamp);
+                    const dateStr = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+                    const timeStr = dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+                    el.innerHTML = `
+                        <div class="log-top">
+                            <span class="log-name">👤 ${item.name}</span>
+                            <span class="log-date">${dateStr}, ${timeStr}</span>
+                        </div>
+                        <button class="btn-copy" onclick="copyText('${item.name}')">Copy Nama</button>
+                    `;
                     list.appendChild(el);
                 });
             }
         });
 
-        // Live Checker
+        // Live Checker (Hanya ganti warna border, tanpa teks)
         function checkCodeLive() {
             const input = document.getElementById('codeInput');
-            const hint = document.getElementById('codeHint');
             let cleanCode = input.value.toUpperCase().replace(/\s+/g, '');
 
             input.classList.remove('valid', 'invalid');
-            hint.className = 'input-hint';
-            hint.innerText = "";
 
             if (cleanCode.length > 0) {
                 codesRef.child(cleanCode).once('value').then(snapshot => {
                     if (snapshot.exists()) {
                         const data = snapshot.val();
-                        if(data.status === 'used') {
-                            input.classList.add('invalid');
-                            hint.innerText = "⚠️ Kode sudah dipakai";
-                            hint.classList.add('hint-bad');
+                        if(data.status !== 'used') {
+                            input.classList.add('valid'); // Hijau
                         } else {
-                            input.classList.add('valid');
-                            hint.innerText = "✅ Valid: " + data.reward;
-                            hint.classList.add('hint-ok');
+                            input.classList.add('invalid'); // Merah
                         }
                     } else {
-                        input.classList.add('invalid');
-                        hint.innerText = "❌ Tidak ditemukan";
-                        hint.classList.add('hint-bad');
+                        input.classList.add('invalid'); // Merah
                     }
                 });
             }
         }
 
-        // ==========================================
-        // LOGIKA DOUBLE CHECK (BARU)
-        // ==========================================
         async function processRedeem() {
             const name = document.getElementById('usernameInput').value.trim();
             const rawCode = document.getElementById('codeInput').value;
@@ -268,7 +290,6 @@
             btn.innerText = "Memproses...";
 
             try {
-                // 1. AMBIL DATA CURRENT DULU (FINAL CHECK)
                 const snapshot = await codesRef.child(cleanCode).once('value');
                 
                 if (!snapshot.exists()) {
@@ -281,16 +302,21 @@
                     throw new Error("KODE_SUDAH_DIPAKAI");
                 }
 
-                // 2. JIKA LULUS CHECK, LAKUKAN UPDATE STATUS
+                // Update Status
                 await codesRef.child(cleanCode).update({ status: 'used' });
 
-                // 3. SUKSES
+                // SUKSES
                 alert(`🎉 SELAMAT!\n\nNama: ${name}\nHadiah: ${data.reward}`);
-                logsRef.push({ name: name });
                 
+                // Simpan Log dengan Timestamp (Waktu Server)
+                logsRef.push({ 
+                    name: name, 
+                    timestamp: firebase.database.ServerValue.TIMESTAMP 
+                });
+                
+                // Reset Form
                 document.getElementById('usernameInput').value = '';
                 document.getElementById('codeInput').value = '';
-                document.getElementById('codeHint').innerText = '';
                 document.getElementById('codeInput').classList.remove('valid');
                 showToast("Berhasil!", "success");
 
@@ -307,6 +333,10 @@
                 btn.disabled = false;
                 btn.innerText = "Tukar Hadiah";
             }
+        }
+
+        function copyText(text) {
+            navigator.clipboard.writeText(text).then(() => showToast("Nama disalin!"));
         }
 
         function showToast(msg, type='info') {
