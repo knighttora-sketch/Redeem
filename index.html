@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redeem Tool Fix</title>
+    <title>Redeem Tool</title>
     <style>
         :root {
             --primary: #6366f1;
@@ -39,7 +39,6 @@
             position: relative;
         }
 
-        /* Connection Status Indicator */
         .status-badge {
             position: absolute;
             top: 15px;
@@ -51,6 +50,7 @@
             display: flex;
             align-items: center;
             gap: 5px;
+            z-index: 10;
         }
         .dot { width: 8px; height: 8px; border-radius: 50%; background: gray; }
         .dot.online { background: var(--success); box-shadow: 0 0 5px var(--success); }
@@ -94,7 +94,6 @@
             margin-top: 10px;
         }
         .btn:hover { opacity: 0.9; }
-        .btn:disabled { background: #475569; cursor: wait; }
 
         .logs-section {
             border-top: 1px solid var(--border);
@@ -125,7 +124,7 @@
         .toast {
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
             background: #333; color: white; padding: 10px 20px; border-radius: 20px;
-            font-size: 0.9rem; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+            font-size: 0.9rem; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 100;
         }
         .toast.show { opacity: 1; }
     </style>
@@ -133,25 +132,24 @@
 <body>
 
     <div class="container">
-        <!-- Status Koneksi -->
         <div class="status-badge" id="connectionStatus">
             <div class="dot" id="statusDot"></div>
             <span id="statusText">Checking...</span>
         </div>
 
         <header>
-            <h1>Redeem Global</h1>
+            <h1>Redeem Tool</h1>
         </header>
 
         <div class="content-area">
             <div class="form-group">
-                <label>Nama</label>
-                <input type="text" id="usernameInput" placeholder="Isi nama..." maxlength="12">
+                <label>Nama Pemenang</label>
+                <input type="text" id="usernameInput" placeholder="Nama Anda..." maxlength="12">
             </div>
 
             <div class="form-group">
                 <label>Kode Redeem</label>
-                <input type="text" id="codeInput" placeholder="KETIK KODE" maxlength="15">
+                <input type="text" id="codeInput" placeholder="Contoh: SULTAN" maxlength="20">
             </div>
 
             <button class="btn" id="redeemBtn" onclick="processRedeem()">Tukar Hadiah</button>
@@ -176,10 +174,9 @@
 
     <script>
         // ==========================================
-        // PENTING: ISI DATA FIREBASE ANDA DI SINI
+        // 1. KONFIGURASI FIREBASE
         // ==========================================
         const firebaseConfig = {
-            // HAPUS TEKS DIBAWAH INI DAN PASTE DARI FIREBASE CONSOLE
             apiKey: "AIzaSyBmmOJue97ewmU5XIoObY6Os22lrPKIcL8",
             authDomain: "torataro.firebaseapp.com",
             databaseURL: "https://torataro-default-rtdb.asia-southeast1.firebasedatabase.app/",
@@ -188,57 +185,43 @@
             messagingSenderId: "357999678278",
             appId: "1:357999678278:web:d7a4dcc62519fe45d88b47"
         };
-        // ==========================================
 
-        // Cek apakah config masih default (dummy)
-        if (firebaseConfig.apiKey.includes("ISI_")) {
-            alert("ERROR: Anda belum mengisi konfigurasi Firebase!\nSilakan buka file HTML ini dan edit bagian 'firebaseConfig'.");
-            document.getElementById('statusText').innerText = "Config Error";
+        // Cek Config
+        if (firebaseConfig.apiKey === "ISI_API_KEY_ANDA_DISINI") {
+            alert("ERROR: Konfigurasi Firebase belum diisi!");
+            document.getElementById('statusText').innerText = "Config Err";
             document.getElementById('statusDot').classList.add('offline');
         } else {
-            // Inisialisasi
-            if (!firebase.apps.length) {
-                try {
-                    firebase.initializeApp(firebaseConfig);
-                    
-                    // Cek koneksi ke database
-                    const connectedRef = firebase.database().ref(".info/connected");
-                    connectedRef.on("value", (snap) => {
-                        if (snap.val() === true) {
-                            document.getElementById('statusText').innerText = "Online";
-                            document.getElementById('statusDot').classList.add('online');
-                        } else {
-                            document.getElementById('statusText').innerText = "Offline";
-                            document.getElementById('statusDot').classList.remove('online');
-                        }
-                    });
-
-                } catch (e) {
-                    console.error(e);
-                    alert("Gagal koneksi ke Firebase. Cek lagi konfigurasi Anda.");
-                    document.getElementById('statusText').innerText = "Error";
-                    document.getElementById('statusDot').classList.add('offline');
-                }
+            try {
+                firebase.initializeApp(firebaseConfig);
+                const connectedRef = firebase.database().ref(".info/connected");
+                connectedRef.on("value", (snap) => {
+                    if (snap.val() === true) {
+                        document.getElementById('statusText').innerText = "Online";
+                        document.getElementById('statusDot').classList.add('online');
+                    } else {
+                        document.getElementById('statusText').innerText = "Offline";
+                        document.getElementById('statusDot').classList.remove('online');
+                    }
+                });
+            } catch (e) {
+                alert("Koneksi Firebase Gagal: " + e.message);
+                document.getElementById('statusDot').classList.add('offline');
             }
         }
 
         const db = firebase.database();
-        const codesRef = db.ref('redeem_codes');
-        const logsRef = db.ref('redeem_logs');
+        
+        // ==========================================
+        // 2. PATH DATABASE (SESUAIKAN DENGAN ANDA)
+        // ==========================================
+        // Struktur Anda: root -> codes -> GEMS, SULTAN, dll
+        const codesRef = db.ref('codes'); 
+        
+        // Logs tetap di folder 'logs' (opsional, bisa diganti 'logs' saja di root)
+        const logsRef = db.ref('logs');
 
-        // Setup Data Awal (Jika kosong)
-        codesRef.once('value', (snapshot) => {
-            if (!snapshot.exists()) {
-                const initCodes = {
-                    "SULTAN": { reward: "💎 5000 Diamond", status: "active" },
-                    "VIP777": { reward: "👑 Skin King", status: "active" },
-                    "GEMS": { reward: "💎 1000 Gems", status: "active" }
-                };
-                codesRef.set(initCodes).then(() => console.log("DB Init"));
-            }
-        });
-
-        // Listener Logs Realtime
+        // Listener Logs
         logsRef.limitToLast(50).on('value', (snapshot) => {
             const list = document.getElementById('logList');
             const count = document.getElementById('logCount');
@@ -255,48 +238,53 @@
                 data.forEach(item => {
                     const el = document.createElement('div');
                     el.className = 'log-item';
-                    el.innerHTML = `
-                        <span>${item.name}</span>
-                        <button class="btn-copy" onclick="navigator.clipboard.writeText('${item.name}')">Copy</button>
-                    `;
+                    el.innerHTML = `<span>${item.name}</span><button class="btn-copy" onclick="navigator.clipboard.writeText('${item.name}')">Copy</button>`;
                     list.appendChild(el);
                 });
             }
         });
 
-        // Logika Redeem
+        // ==========================================
+        // 3. FUNGSI REDEEM
+        // ==========================================
         function processRedeem() {
             const name = document.getElementById('usernameInput').value.trim();
-            let code = document.getElementById('codeInput').value.trim();
+            let rawCode = document.getElementById('codeInput').value;
+            
+            // Bersihkan Input (Hapus spasi, huruf besar)
+            let cleanCode = rawCode.toUpperCase().replace(/\s+/g, '');
 
-            if(!name) return showToast("Isi nama dulu!");
-            if(!code) return showToast("Isi kode!");
+            if(!name) return showToast("Isi nama dulu!", "error");
+            if(!cleanCode) return showToast("Kode kosong!", "error");
 
-            // Hapus spasi berlebih dan jadikan huruf besar
-            code = code.replace(/\s+/g, '').toUpperCase();
+            // DEBUG: Cetak ke Console Browser
+            console.log("Mencari kode di path: /codes/" + cleanCode);
 
-            // Transaction (Mencegah race condition)
-            codesRef.child(code).transaction((currentData) => {
+            // Transaction ke Firebase
+            codesRef.child(cleanCode).transaction((currentData) => {
+                
+                console.log("Data ditemukan di Firebase:", currentData);
+
                 if (!currentData) {
-                    showToast("Kode tidak valid!", "error");
-                    return; // Abort
+                    // Jika null, berarti kode tidak ada
+                    showToast("Kode '" + cleanCode + "' TIDAK VALID!", "error");
+                    return; // Batalkan transaksi
                 }
                 if (currentData.status === 'used') {
                     showToast("Kode sudah dipakai!", "error");
-                    return; // Abort
+                    return; // Batalkan transaksi
                 }
                 return { ...currentData, status: 'used' }; // Update status
             }, (error, committed, snapshot) => {
                 if (error) {
+                    showToast("Error Koneksi", "error");
                     console.error(error);
-                    showToast("Koneksi bermasalah", "error");
                 } else if (committed) {
-                    // Sukses
+                    // Berhasil
                     const reward = snapshot.val().reward;
-                    alert(`🎉 SELAMAT ${name}!\n\nAnda mendapatkan:\n${reward}`);
+                    alert(`🎉 SELAMAT!\n\nNama: ${name}\nHadiah: ${reward}`);
                     
-                    logsRef.push({ name: name, time: new Date().toLocaleTimeString() });
-                    
+                    logsRef.push({ name: name });
                     document.getElementById('usernameInput').value = '';
                     document.getElementById('codeInput').value = '';
                     showToast("Berhasil!", "success");
