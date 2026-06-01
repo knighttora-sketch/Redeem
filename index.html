@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redeem Global Realtime</title>
+    <title>Redeem Tool Fix</title>
     <style>
         :root {
             --primary: #6366f1;
-            --primary-dark: #4f46e5;
             --bg-dark: #0f172a;
             --bg-card: #1e293b;
             --text-main: #f8fafc;
@@ -34,29 +33,42 @@
             max-width: 400px;
             background: var(--bg-card);
             border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             border: 1px solid var(--border);
             overflow: hidden;
             margin-top: 20px;
+            position: relative;
         }
 
+        /* Connection Status Indicator */
+        .status-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 12px;
+            background: #334155;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: gray; }
+        .dot.online { background: var(--success); box-shadow: 0 0 5px var(--success); }
+        .dot.offline { background: var(--error); }
+
         header {
-            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            background: linear-gradient(135deg, #4f46e5, var(--primary));
             padding: 25px;
             text-align: center;
             border-bottom: 1px solid var(--border);
         }
-
-        header h1 { font-size: 1.4rem; margin-bottom: 5px; }
-        header p { font-size: 0.85rem; opacity: 0.9; }
+        header h1 { font-size: 1.3rem; margin-bottom: 5px; }
 
         .content-area { padding: 25px; }
 
         .form-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; color: var(--text-muted); font-size: 0.9rem; }
         
-        .input-row { display: flex; gap: 10px; margin-bottom: 10px; }
-
         input {
             padding: 12px;
             background: #0f172a;
@@ -64,15 +76,11 @@
             border-radius: 8px;
             color: white;
             font-size: 1rem;
+            width: 100%;
+            text-align: center;
+            text-transform: uppercase;
         }
-
-        input[type="text"] { 
-            width: 100%; 
-            text-align: center; 
-            text-transform: uppercase; 
-            letter-spacing: 1px; 
-        }
-        input[type="text"]:focus { outline: none; border-color: var(--primary); }
+        input:focus { outline: none; border-color: var(--primary); }
 
         .btn {
             padding: 12px;
@@ -82,73 +90,41 @@
             color: white;
             font-weight: bold;
             cursor: pointer;
-            transition: 0.2s;
             width: 100%;
+            margin-top: 10px;
         }
-        .btn:hover { background: var(--primary-dark); }
+        .btn:hover { opacity: 0.9; }
+        .btn:disabled { background: #475569; cursor: wait; }
 
-        /* Logs Style */
         .logs-section {
             border-top: 1px solid var(--border);
             padding-top: 20px;
         }
-
-        .logs-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .logs-header h3 { font-size: 1rem; color: var(--text-muted); }
-        .badge { background: var(--border); padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; }
-
+        .logs-header { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 0.9rem; color: var(--text-muted); }
+        
         .log-list {
-            max-height: 250px;
+            max-height: 200px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
             gap: 8px;
-            padding-right: 5px;
         }
-
-        .log-list::-webkit-scrollbar { width: 6px; }
-        .log-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
         .log-item {
             background: #0f172a;
-            padding: 12px 15px;
-            border-radius: 8px;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.9rem;
             border-left: 3px solid var(--primary);
-            font-weight: bold;
-            font-size: 0.95rem;
-            color: var(--text-main);
-            animation: slideIn 0.3s ease;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-
-        @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
-
-        .btn-copy {
-            background: transparent;
-            border: 1px solid var(--border);
-            color: var(--text-muted);
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            cursor: pointer;
-        }
+        .btn-copy { background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 0.7rem;}
         .btn-copy:hover { background: var(--border); color: white; }
 
-        .empty-state { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 10px; }
-
-        /* Loading & Toast */
-        #loader { display: none; text-align: center; margin: 10px; color: var(--text-muted); font-size: 0.9rem;}
         .toast {
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: #333; color: white; padding: 10px 20px; border-radius: 30px;
+            background: #333; color: white; padding: 10px 20px; border-radius: 20px;
             font-size: 0.9rem; opacity: 0; pointer-events: none; transition: opacity 0.3s;
         }
         .toast.show { opacity: 1; }
@@ -157,55 +133,53 @@
 <body>
 
     <div class="container">
+        <!-- Status Koneksi -->
+        <div class="status-badge" id="connectionStatus">
+            <div class="dot" id="statusDot"></div>
+            <span id="statusText">Checking...</span>
+        </div>
+
         <header>
-            <h1>Global Redeem</h1>
-            <p>Live Database via Firebase</p>
+            <h1>Redeem Global</h1>
         </header>
 
         <div class="content-area">
-            <div id="loader">Menghubungkan ke Database...</div>
-
             <div class="form-group">
-                <label>Masukkan Identitas</label>
-                <div class="input-row">
-                    <input type="text" id="usernameInput" placeholder="Nama Kamu..." maxlength="12">
-                </div>
+                <label>Nama</label>
+                <input type="text" id="usernameInput" placeholder="Isi nama..." maxlength="12">
             </div>
 
             <div class="form-group">
-                <label>Masukkan Kode</label>
-                <div class="input-row">
-                    <input type="text" id="codeInput" placeholder="XXXX-XXXX" maxlength="15">
-                </div>
-                <button class="btn" onclick="processRedeem()">Tukar Hadiah</button>
+                <label>Kode Redeem</label>
+                <input type="text" id="codeInput" placeholder="KETIK KODE" maxlength="15">
             </div>
 
-            <!-- Section Logs Pemenang -->
-            <div class="logs-section">
+            <button class="btn" id="redeemBtn" onclick="processRedeem()">Tukar Hadiah</button>
+
+            <div class="logs-section" style="margin-top:30px;">
                 <div class="logs-header">
-                    <h3>Daftar Pemenang (Live)</h3>
-                    <span class="badge" id="logCount">0</span>
+                    <span>Daftar Pemenang</span>
+                    <span id="logCount">0</span>
                 </div>
-                
-                <div class="log-list" id="logListContainer">
-                    <div class="empty-state">Menunggu koneksi database...</div>
+                <div class="log-list" id="logList">
+                    <div style="text-align:center; color:#555; font-size:0.8rem;">Menunggu data...</div>
                 </div>
             </div>
-
         </div>
     </div>
 
-    <div id="toast" class="toast">Notifikasi</div>
+    <div id="toast" class="toast"></div>
 
-    <!-- FIREBASE SDK (Versi 8 - Kompatibel) -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <script>
-        // --- 1. KONFIGURASI FIREBASE ---
-        // GANTI BAGIAN INI DENGAN DATA DARI CONSOLE FIREBASE ANDA
+        // ==========================================
+        // PENTING: ISI DATA FIREBASE ANDA DI SINI
+        // ==========================================
         const firebaseConfig = {
-            // --- PASTE KONFIGURASI FIREBASE DISINI ---
+            // HAPUS TEKS DIBAWAH INI DAN PASTE DARI FIREBASE CONSOLE
             apiKey: "AIzaSyBmmOJue97ewmU5XIoObY6Os22lrPKIcL8",
             authDomain: "torataro.firebaseapp.com",
             databaseURL: "https://torataro-default-rtdb.asia-southeast1.firebasedatabase.app/",
@@ -213,135 +187,129 @@
             storageBucket: "torataro.firebasestorage.app",
             messagingSenderId: "357999678278",
             appId: "1:357999678278:web:d7a4dcc62519fe45d88b47"
-            // ---------------------------------------
         };
+        // ==========================================
 
-        // Inisialisasi Firebase
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
+        // Cek apakah config masih default (dummy)
+        if (firebaseConfig.apiKey.includes("ISI_")) {
+            alert("ERROR: Anda belum mengisi konfigurasi Firebase!\nSilakan buka file HTML ini dan edit bagian 'firebaseConfig'.");
+            document.getElementById('statusText').innerText = "Config Error";
+            document.getElementById('statusDot').classList.add('offline');
+        } else {
+            // Inisialisasi
+            if (!firebase.apps.length) {
+                try {
+                    firebase.initializeApp(firebaseConfig);
+                    
+                    // Cek koneksi ke database
+                    const connectedRef = firebase.database().ref(".info/connected");
+                    connectedRef.on("value", (snap) => {
+                        if (snap.val() === true) {
+                            document.getElementById('statusText').innerText = "Online";
+                            document.getElementById('statusDot').classList.add('online');
+                        } else {
+                            document.getElementById('statusText').innerText = "Offline";
+                            document.getElementById('statusDot').classList.remove('online');
+                        }
+                    });
+
+                } catch (e) {
+                    console.error(e);
+                    alert("Gagal koneksi ke Firebase. Cek lagi konfigurasi Anda.");
+                    document.getElementById('statusText').innerText = "Error";
+                    document.getElementById('statusDot').classList.add('offline');
+                }
+            }
         }
+
         const db = firebase.database();
+        const codesRef = db.ref('redeem_codes');
+        const logsRef = db.ref('redeem_logs');
 
-        // Referensi Database
-        const codesRef = db.ref('codes');
-        const logsRef = db.ref('logs');
-
-        // --- 2. INISIALISASI DATA KODE (Hanya dijalankan sekali oleh Admin/Pertama kali) ---
-        // Kita cek apakah data 'codes' sudah ada, jika belum, isi dengan data default
+        // Setup Data Awal (Jika kosong)
         codesRef.once('value', (snapshot) => {
-            document.getElementById('loader').style.display = 'none';
             if (!snapshot.exists()) {
-                // Data default kode
-                const defaultCodes = {
-                    "SULTAN": { name: "💎 5000 Diamond", status: "active" },
-                    "VIP777": { name: "👑 Skin King", status: "active" },
-                    "GEMS": { name: "💎 1000 Gems", status: "active" },
-                    "TESTGA": { name: "💎 1000 Gems", status: "active" },
-                    "TEST": { name: "🎁 Mystery Box", status: "active" }
+                const initCodes = {
+                    "SULTAN": { reward: "💎 5000 Diamond", status: "active" },
+                    "VIP777": { reward: "👑 Skin King", status: "active" },
+                    "GEMS": { reward: "💎 1000 Gems", status: "active" }
                 };
-                codesRef.set(defaultCodes).then(() => {
-                    console.log("Database kode berhasil dibuat.");
+                codesRef.set(initCodes).then(() => console.log("DB Init"));
+            }
+        });
+
+        // Listener Logs Realtime
+        logsRef.limitToLast(50).on('value', (snapshot) => {
+            const list = document.getElementById('logList');
+            const count = document.getElementById('logCount');
+            list.innerHTML = '';
+            
+            const data = [];
+            snapshot.forEach(c => data.push(c.val()));
+            data.reverse();
+            count.innerText = data.length;
+
+            if(data.length === 0) {
+                list.innerHTML = '<div style="text-align:center; color:#555; font-size:0.8rem;">Belum ada pemenang.</div>';
+            } else {
+                data.forEach(item => {
+                    const el = document.createElement('div');
+                    el.className = 'log-item';
+                    el.innerHTML = `
+                        <span>${item.name}</span>
+                        <button class="btn-copy" onclick="navigator.clipboard.writeText('${item.name}')">Copy</button>
+                    `;
+                    list.appendChild(el);
                 });
             }
         });
 
-        // --- 3. FUNGSI LISTEN LOGS (Realtime) ---
-        // Fungsi ini otomatis update tampilan jika ada pemenang baru di HP lain
-        logsRef.limitToLast(50).on('value', (snapshot) => {
-            const container = document.getElementById('logListContainer');
-            const badge = document.getElementById('logCount');
-            container.innerHTML = ''; // Bersihkan list
-
-            const logs = [];
-            snapshot.forEach((childSnapshot) => {
-                logs.push(childSnapshot.val());
-            });
-            // Balik urutan agar yang terbaru di atas
-            logs.reverse();
-
-            badge.textContent = logs.length;
-
-            if (logs.length === 0) {
-                container.innerHTML = '<div class="empty-state">Belum ada pemenang.</div>';
-                return;
-            }
-
-            logs.forEach(log => {
-                const div = document.createElement('div');
-                div.className = 'log-item';
-                div.innerHTML = `
-                    <span>👤 ${log.name}</span>
-                    <button class="btn-copy" onclick="copyName('${log.name}')">Copy</button>
-                `;
-                container.appendChild(div);
-            });
-        });
-
-        // --- 4. LOGIKA UTAMA ---
+        // Logika Redeem
         function processRedeem() {
-            const nameIn = document.getElementById('usernameInput');
-            const codeIn = document.getElementById('codeInput');
-            
-            const name = nameIn.value.trim();
-            const code = codeIn.value.trim().toUpperCase();
+            const name = document.getElementById('usernameInput').value.trim();
+            let code = document.getElementById('codeInput').value.trim();
 
-            if (!name) return showToast("Isi nama kamu dulu!");
-            if (!code) return showToast("Isi kode redeem!");
+            if(!name) return showToast("Isi nama dulu!");
+            if(!code) return showToast("Isi kode!");
 
-            // Ambil data kode dari Firebase secara realtime (Transaction)
-            // Transaction dipakai agar mencegah 2 orang redeem kode yang sama persis di waktu yang sama
+            // Hapus spasi berlebih dan jadikan huruf besar
+            code = code.replace(/\s+/g, '').toUpperCase();
+
+            // Transaction (Mencegah race condition)
             codesRef.child(code).transaction((currentData) => {
-                if (currentData === null) {
-                    // Kode tidak ditemukan
+                if (!currentData) {
                     showToast("Kode tidak valid!", "error");
-                    return; // Batalkan transaksi
+                    return; // Abort
                 }
                 if (currentData.status === 'used') {
-                    // Kode sudah dipakai
-                    showToast("Kode sudah dipakai orang lain!", "error");
-                    return; // Batalkan transaksi
+                    showToast("Kode sudah dipakai!", "error");
+                    return; // Abort
                 }
-                
-                // Jika kode valid dan aktif, ubah status jadi 'used'
-                return { ...currentData, status: 'used' };
+                return { ...currentData, status: 'used' }; // Update status
             }, (error, committed, snapshot) => {
                 if (error) {
                     console.error(error);
-                    showToast("Terjadi kesalahan koneksi.", "error");
+                    showToast("Koneksi bermasalah", "error");
                 } else if (committed) {
-                    // Jika committed = true, berarti status berhasil diubah ke 'used'
-                    const rewardData = snapshot.val();
+                    // Sukses
+                    const reward = snapshot.val().reward;
+                    alert(`🎉 SELAMAT ${name}!\n\nAnda mendapatkan:\n${reward}`);
                     
-                    // 1. Tampilkan Alert di HP user ini
-                    alert(`🎉 SELAMAT!\n\nNama: ${name}\nHadiah: ${rewardData.name}\n\nKode berhasil ditukar.`);
-
-                    // 2. Simpan Log Pemenang ke Firebase (Agar muncul di HP lain)
-                    logsRef.push({
-                        name: name,
-                        date: new Date().toISOString()
-                    });
-
-                    // 3. Bersihkan Input
-                    nameIn.value = '';
-                    codeIn.value = '';
-                    showToast("Berhasil! Cek daftar pemenang.");
+                    logsRef.push({ name: name, time: new Date().toLocaleTimeString() });
+                    
+                    document.getElementById('usernameInput').value = '';
+                    document.getElementById('codeInput').value = '';
+                    showToast("Berhasil!", "success");
                 }
             });
         }
 
-        // --- HELPER FUNCTIONS ---
-        function showToast(msg, type = 'info') {
-            const toast = document.getElementById('toast');
-            toast.textContent = msg;
-            toast.style.backgroundColor = type === 'error' ? '#ef4444' : '#333';
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
-        }
-
-        function copyName(name) {
-            navigator.clipboard.writeText(name).then(() => {
-                showToast(`Nama "${name}" disalin!`);
-            });
+        function showToast(msg, type='info') {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.style.backgroundColor = type === 'error' ? '#ef4444' : (type === 'success' ? '#10b981' : '#333');
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
         }
     </script>
 </body>
